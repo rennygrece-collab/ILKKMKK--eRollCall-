@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hostel e-Roll Call System</title>
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiSG9zdGVsIGUtUm9sbCBDYWxsIiwic2hvcnRfbmFtZSI6ImVSb2xsQ2FsbCIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjZmZmZmZmIiwidGhlbWVfY29sb3IiOiIjMjU2M2ViIn0=">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #1e293b;
+            --gray: #64748b;
+            --light: #f1f5f9;
+            --white: #ffffff;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: var(--light); color: var(--dark); }
+        .hidden { display: none !important; }
+
+        .app-container { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--white); position: relative; }
+        .page { padding: 20px; padding-bottom: 100px; }
+
+        .header { background: var(--primary); color: white; padding: 20px; border-radius: 0 0 var(--radius) var(--radius); margin: -20px -20px 20px -20px; }
+        .header h1 { font-size: 1.5rem; font-weight: 700; }
+        .header p { opacity: 0.9; font-size: 0.875rem; margin-top: 4px; }
+
+        .card { background: white; border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid #e2e8f0; }
+        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+        .btn { width: 100%; padding: 14px; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-lg { padding: 18px; font-size: 1.1rem; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 0.875rem; font-weight: 500; margin-bottom: 6px; color: var(--gray); }
+        .form-input, .form-select { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; transition: border-color 0.2s; }
+        .form-input:focus, .form-select:focus { outline: none; border-color: var(--primary); }
+
+        .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 0.875rem; font-weight: 500; }
+        .status-in { background: #d1fae5; color: #065f46; }
+        .status-out { background: #fee2e2; color: #991b1b; }
+        .status-emergency { background: #fef3c7; color: #92400e; }
+
+        .map-container { width: 100%; height: 200px; background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; margin-bottom: 16px; position: relative; overflow: hidden; }
+        .map-dot { width: 20px; height: 20px; background: var(--primary); border-radius: 50%; border: 4px solid white; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3); animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+        .geofence-ring { position: absolute; width: 120px; height: 120px; border: 2px dashed var(--primary); border-radius: 50%; opacity: 0.5; }
+
+        .emergency-banner { background: linear-gradient(90deg, #dc2626, #ef4444); color: white; padding: 16px; border-radius: var(--radius); margin-bottom: 20px; text-align: center; animation: emergencyPulse 1s infinite; }
+        @keyframes emergencyPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
+        .emergency-banner h2 { font-size: 1.25rem; font-weight: 700; }
+
+        .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: white; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-around; padding: 12px 0; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 12px; cursor: pointer; color: var(--gray); font-size: 0.75rem; transition: color 0.2s; border: none; background: none; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item svg { width: 24px; height: 24px; }
+
+        .student-list { max-height: 400px; overflow-y: auto; }
+        .student-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f1f5f9; }
+        .student-item:last-child { border-bottom: none; }
+        .student-info { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; }
+
+        .toggle { position: relative; width: 50px; height: 26px; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #cbd5e1; border-radius: 26px; transition: 0.3s; }
+        .toggle-slider:before { content: ""; position: absolute; height: 20px; width: 20px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+        input:checked + .toggle-slider { background: var(--success); }
+        input:checked + .toggle-slider:before { transform: translateX(24px); }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .stat-box { background: white; padding: 16px; border-radius: var(--radius); text-align: center; box-shadow: var(--shadow); }
+        .stat-number { font-size: 2rem; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 0.875rem; color: var(--gray); margin-top: 4px; }
+
+        .pass-card { background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid var(--warning); border-radius: var(--radius); padding: 20px; text-align: center; }
+        .pass-code { font-size: 2.5rem; font-weight: 700; letter-spacing: 8px; color: var(--dark); margin: 16px 0; font-family: monospace; }
+        .pass-timer { font-size: 1rem; color: var(--danger); font-weight: 600; }
+
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); background: var(--dark); color: white; padding: 12px 24px; border-radius: 8px; box-shadow: var(--shadow-lg); z-index: 1000; transition: transform 0.3s; font-size: 0.875rem; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; background: var(--light); padding: 4px; border-radius: var(--radius); }
+        .tab { flex: 1; padding: 10px; border: none; background: transparent; border-radius: 8px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+        .tab.active { background: white; color: var(--primary); box-shadow: var(--shadow); }
+
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { font-weight: 600; color: var(--gray); font-size: 0.75rem; text-transform: uppercase; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: slideIn 0.3s ease-out; }
+
+        .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        .role-card { padding: 24px; border: 2px solid #e2e8f0; border-radius: var(--radius); text-align: center; cursor: pointer; transition: all 0.2s; }
+        .role-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .role-card.selected { border-color: var(--primary); background: #eff6ff; }
+        .role-icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+        .schedule-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: var(--light); border-radius: 8px; margin-bottom: 8px; }
+        .schedule-day { font-weight: 600; width: 100px; }
+        .schedule-time { display: flex; align-items: center; gap: 8px; }
+        .schedule-time input { width: 80px; padding: 6px; border: 1px solid #cbd5e1; border-radius: 4px; text-align: center; }
+
+        /* Desktop responsive */
+        @media (min-width: 768px) {
+            .app-container { max-width: 900px; }
+            .stats-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div id="toast" class="toast"></div>
+
+        <!-- LOGIN PAGE -->
+        <div id="page-login" class="page">
+            <div style="text-align: center; padding: 40px 20px;">
+                <div style="font-size: 4rem; margin-bottom: 16px;">🏫</div>
+                <h1 style="font-size: 1.75rem; margin-bottom: 8px;">Hostel e-Roll Call</h1>
+                <p style="color: var(--gray); margin-bottom: 40px;">Smart Attendance & Emergency System</p>
+
+                <div class="role-grid">
+                    <div class="role-card" onclick="selectRole('student')">
+                        <div class="role-icon">🎓</div>
+                        <div style="font-weight: 600;">Student</div>
+                        <div style="font-size: 0.875rem; color: var(--gray); margin-top: 4px;">Clock in/out</div>
+                    </div>
+                    <div class="role-card" onclick="selectRole('admin')">
+                        <div class="role-icon">👨‍💼</div>
+                        <div style="font-weight: 600;">Admin</div>
+                        <div style="font-size: 0.875rem; color: var(--gray); margin-top: 4px;">Manage System</div>
+                    </div>
+                </div>
+
+                <div id="login-form" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">User ID</label>
+                        <input type="text" id="login-id" class="form-input" placeholder="Enter your ID">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="login-password" class="form-input" placeholder="Enter password">
+                    </div>
+                    <button class="btn btn-primary" onclick="performLogin()">Login</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- STUDENT DASHBOARD -->
+        <div id="page-student" class="page hidden">
+            <div class="header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>Hi, <span id="student-name">Student</span></h1>
+                        <p id="student-id">ID: -</p>
+                    </div>
+                    <div id="student-status-badge" class="status-badge status-out">
+                        <span>●</span> Checked Out
+                    </div>
+                </div>
+            </div>
+
+            <div id="emergency-banner" class="emergency-banner hidden">
+                <h2>🚨 EMERGENCY HEAD COUNT</h2>
+                <p style="margin-top: 4px;">Please confirm your safety immediately</p>
+                <button class="btn btn-lg" style="margin-top: 12px; background: white; color: #dc2626;" onclick="confirmEmergencySafety()">I AM SAFE</button>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📍 Location Status</div>
+                <div class="map-container">
+                    <div class="geofence-ring"></div>
+                    <div class="map-dot"></div>
+                    <div style="font-weight: 600; color: var(--primary);">Hostel Premises</div>
+                    <div id="gps-status" style="font-size: 0.875rem; color: var(--gray);">GPS: Acquiring...</div>
+                </div>
+                <div id="location-text" style="text-align: center; font-weight: 500; color: var(--gray);">Waiting for location...</div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">⏱️ Attendance</div>
+                <div style="text-align: center; margin-bottom: 16px;">
+                    <div id="current-time" style="font-size: 2.5rem; font-weight: 700; font-family: monospace;">--:--</div>
+                    <div id="current-date" style="color: var(--gray); margin-top: 4px;">--</div>
+                </div>
+
+                <div id="clock-buttons">
+                    <button id="btn-clock-in" class="btn btn-success btn-lg" onclick="clockIn()" style="margin-bottom: 12px;">✅ CLOCK IN</button>
+                    <button id="btn-clock-out" class="btn btn-danger btn-lg hidden" onclick="clockOut()">🚪 CLOCK OUT</button>
+                </div>
+
+                <div id="schedule-info" style="margin-top: 16px; padding: 12px; background: var(--light); border-radius: 8px; font-size: 0.875rem;">
+                    <strong>Today's Schedule:</strong><br>
+                    <span id="today-schedule">Loading...</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🚨 Emergency Pass</div>
+                <p style="font-size: 0.875rem; color: var(--gray); margin-bottom: 16px;">Request temporary exit pass for urgent matters</p>
+
+                <div id="pass-active" class="hidden">
+                    <div class="pass-card">
+                        <div style="font-weight: 600; color: var(--gray);">ACTIVE PASS</div>
+                        <div class="pass-code" id="pass-code">----</div>
+                        <div class="pass-timer" id="pass-timer">Expires in: --:--</div>
+                        <div style="font-size: 0.875rem; margin-top: 8px; color: var(--gray);" id="pass-reason"></div>
+                    </div>
+                </div>
+
+                <div id="pass-form">
+                    <div class="form-group">
+                        <label class="form-label">Reason for Exit</label>
+                        <select id="pass-reason-select" class="form-select">
+                            <option value="">Select reason...</option>
+                            <option value="Medical Emergency">Medical Emergency</option>
+                            <option value="Family Emergency">Family Emergency</option>
+                            <option value="Official Business">Official Business</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Duration (hours)</label>
+                        <select id="pass-duration" class="form-select">
+                            <option value="1">1 hour</option>
+                            <option value="2">2 hours</option>
+                            <option value="4">4 hours</option>
+                            <option value="8">8 hours</option>
+                            <option value="24">24 hours</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-warning" onclick="requestPass()">Request Emergency Pass</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📋 Recent Activity</div>
+                <div id="activity-list" style="font-size: 0.875rem; color: var(--gray); text-align: center; padding: 20px;">No recent activity</div>
+            </div>
+        </div>
+
+        <!-- ADMIN DASHBOARD -->
+        <div id="page-admin" class="page hidden">
+            <div class="header">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h1>Admin Dashboard</h1>
+                        <p>Hostel Management System</p>
+                    </div>
+                    <button onclick="triggerEmergency()" class="btn btn-danger" style="width: auto; padding: 8px 16px; font-size: 0.875rem;">🚨 EMERGENCY</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-total">0</div>
+                    <div class="stat-label">Total Students</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-present">0</div>
+                    <div class="stat-label">Checked In</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-out">0</div>
+                    <div class="stat-label">Checked Out</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="stat-emergency">0</div>
+                    <div class="stat-label">Emergency Pass</div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchAdminTab('attendance')">Attendance</button>
+                <button class="tab" onclick="switchAdminTab('schedule')">Schedule</button>
+                <button class="tab" onclick="switchAdminTab('locations')">Locations</button>
+                <button class="tab" onclick="switchAdminTab('users')">Users</button>
+            </div>
+
+            <div id="tab-attendance" class="admin-tab">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <div class="card-title" style="margin: 0;">👥 Live Attendance</div>
+                        <button class="btn btn-outline" style="width: auto; padding: 6px 12px; font-size: 0.875rem;" onclick="exportAttendance()">📥 Export</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Student</th><th>Status</th><th>Location</th><th>Last Update</th></tr>
+                            </thead>
+                            <tbody id="attendance-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card" id="emergency-count-card" style="border: 2px solid var(--danger);">
+                    <div class="card-title">🚨 Emergency Head Count</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <div>
+                            <div style="font-size: 0.875rem; color: var(--gray);">Safe / Total</div>
+                            <div style="font-size: 2rem; font-weight: 700;">
+                                <span id="emergency-safe" style="color: var(--success);">0</span>
+                                <span style="color: var(--gray);">/</span>
+                                <span id="emergency-total">0</span>
+                            </div>
+                        </div>
+                        <div id="emergency-progress" style="width: 80px; height: 80px; border-radius: 50%; border: 8px solid #e2e8f0; border-top-color: var(--success); display: flex; align-items: center; justify-content: center; font-weight: 700;">0%</div>
+                    </div>
+                    <button class="btn btn-danger" onclick="triggerEmergency()">Initiate Emergency Roll Call</button>
+                </div>
+            </div>
+
+            <div id="tab-schedule" class="admin-tab hidden">
+                <div class="card">
+                    <div class="card-title">📅 Weekly Schedule (Mon-Fri)</div>
+                    <p style="font-size: 0.875rem; color: var(--gray); margin-bottom: 16px;">Set mandatory clock-in and clock-out times</p>
+
+                    <div id="schedule-list">
+                        <div class="schedule-row">
+                            <div class="schedule-day">Monday</div>
+                            <div class="schedule-time"><input type="time" id="mon-in" value="22:00"><span>to</span><input type="time" id="mon-out" value="06:00"></div>
+                            <label class="toggle"><input type="checkbox" id="mon-active" checked><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="schedule-row">
+                            <div class="schedule-day">Tuesday</div>
+                            <div class="schedule-time"><input type="time" id="tue-in" value="22:00"><span>to</span><input type="time" id="tue-out" value="06:00"></div>
+                            <label class="toggle"><input type="checkbox" id="tue-active" checked><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="schedule-row">
+                            <div class="schedule-day">Wednesday</div>
+                            <div class="schedule-time"><input type="time" id="wed-in" value="22:00"><span>to</span><input type="time" id="wed-out" value="06:00"></div>
+                            <label class="toggle"><input type="checkbox" id="wed-active" checked><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="schedule-row">
+                            <div class="schedule-day">Thursday</div>
+                            <div class="schedule-time"><input type="time" id="thu-in" value="22:00"><span>to</span><input type="time" id="thu-out" value="06:00"></div>
+                            <label class="toggle"><input type="checkbox" id="thu-active" checked><span class="toggle-slider"></span></label>
+                        </div>
+                        <div class="schedule-row">
+                            <div class="schedule-day">Friday</div>
+                            <div class="schedule-time"><input type="time" id="fri-in" value="22:00"><span>to</span><input type="time" id="fri-out" value="06:00"></div>
+                            <label class="toggle"><input type="checkbox" id="fri-active" checked><span class="toggle-slider"></span></label>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="margin-top: 16px;" onclick="saveSchedule()">Save Schedule</button>
+                </div>
+            </div>
+
+            <div id="tab-locations" class="admin-tab hidden">
+                <div class="card">
+                    <div class="card-title">📍 Geofence Locations</div>
+                    <p style="font-size: 0.875rem; color: var(--gray); margin-bottom: 16px;">Define unlimited check-in zones with GPS coordinates</p>
+
+                    <div class="form-group">
+                        <label class="form-label">Location Name</label>
+                        <input type="text" id="loc-name" class="form-input" placeholder="e.g., Block A Hostel">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div class="form-group">
+                            <label class="form-label">Latitude</label>
+                            <input type="number" id="loc-lat" class="form-input" placeholder="3.1390" step="any">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Longitude</label>
+                            <input type="number" id="loc-lng" class="form-input" placeholder="101.6869" step="any">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Radius (meters)</label>
+                        <input type="number" id="loc-radius" class="form-input" placeholder="100" value="100">
+                    </div>
+                    <button class="btn btn-primary" onclick="addLocation()">Add Location</button>
+
+                    <div style="margin-top: 20px;">
+                        <div style="font-weight: 600; margin-bottom: 12px; font-size: 0.875rem;">Saved Locations</div>
+                        <div id="locations-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-users" class="admin-tab hidden">
+                <div class="card">
+                    <div class="card-title">👤 User Management</div>
+                    <p style="font-size: 0.875rem; color: var(--gray); margin-bottom: 16px;">No limit on users, groups, or locations</p>
+
+                    <div class="tabs" style="margin-bottom: 16px;">
+                        <button class="tab active" onclick="switchUserTab('students')" style="font-size: 0.875rem;">Students</button>
+                        <button class="tab" onclick="switchUserTab('admins')" style="font-size: 0.875rem;">Admins</button>
+                        <button class="tab" onclick="switchUserTab('groups')" style="font-size: 0.875rem;">Groups</button>
+                    </div>
+
+                    <div id="user-tab-students">
+                        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                            <input type="text" id="search-student" class="form-input" placeholder="Search student..." style="flex: 1;">
+                            <button class="btn btn-primary" style="width: auto; padding: 12px 16px;" onclick="showAddStudent()">+ Add</button>
+                        </div>
+                        <div id="students-list" class="student-list"></div>
+                    </div>
+
+                    <div id="user-tab-admins" class="hidden">
+                        <div id="admins-list" class="student-list"></div>
+                    </div>
+
+                    <div id="user-tab-groups" class="hidden">
+                        <div class="form-group">
+                            <label class="form-label">Group Name</label>
+                            <input type="text" id="group-name" class="form-input" placeholder="e.g., Block A, Floor 1">
+                        </div>
+                        <button class="btn btn-primary" onclick="addGroup()">Create Group</button>
+                        <div id="groups-list" style="margin-top: 16px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <nav id="bottom-nav" class="bottom-nav hidden">
+            <button class="nav-item active" onclick="navTo('home')">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                <span>Home</span>
+            </button>
+            <button class="nav-item" onclick="navTo('history')">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span>History</span>
+            </button>
+            <button class="nav-item" onclick="navTo('pass')">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                <span>Pass</span>
+            </button>
+            <button class="nav-item" onclick="logout()">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                <span>Logout</span>
+            </button>
+        </nav>
+    </div>
+
+<script>
+// ==================== DATA STORE ====================
+const DB = {
+  users: JSON.parse(localStorage.getItem('erc_users')) || [
+    { id: 'admin1', name: 'Chief Warden', password: 'admin123', role: 'admin', group: 'Management' },
+    { id: 'S001', name: 'Ahmad Bin Ali', password: 'pass123', role: 'student', group: 'Block A', checkedIn: false, lastCheckIn: null, lastCheckOut: null, location: null, emergencySafe: false },
+    { id: 'S002', name: 'Sarah Lim', password: 'pass123', role: 'student', group: 'Block A', checkedIn: false, lastCheckIn: null, lastCheckOut: null, location: null, emergencySafe: false },
+    { id: 'S003', name: 'Rajesh Kumar', password: 'pass123', role: 'student', group: 'Block B', checkedIn: false, lastCheckIn: null, lastCheckOut: null, location: null, emergencySafe: false },
+    { id: 'S004', name: 'Nurul Huda', password: 'pass123', role: 'student', group: 'Block B', checkedIn: false, lastCheckIn: null, lastCheckOut: null, location: null, emergencySafe: false },
+  ],
+  locations: JSON.parse(localStorage.getItem('erc_locations')) || [
+    { id: 1, name: 'Main Hostel Block', lat: 3.1390, lng: 101.6869, radius: 150 },
+    { id: 2, name: 'Block A', lat: 3.1395, lng: 101.6875, radius: 100 },
+    { id: 3, name: 'Block B', lat: 3.1385, lng: 101.6860, radius: 100 },
+  ],
+  schedule: JSON.parse(localStorage.getItem('erc_schedule')) || {
+    monday: { in: '22:00', out: '06:00', active: true },
+    tuesday: { in: '22:00', out: '06:00', active: true },
+    wednesday: { in: '22:00', out: '06:00', active: true },
+    thursday: { in: '22:00', out: '06:00', active: true },
+    friday: { in: '22:00', out: '06:00', active: true },
+  },
+  passes: JSON.parse(localStorage.getItem('erc_passes')) || [],
+  emergencyMode: JSON.parse(localStorage.getItem('erc_emergency')) || false,
+  logs: JSON.parse(localStorage.getItem('erc_logs')) || [],
+  currentUser: JSON.parse(localStorage.getItem('erc_currentUser')) || null,
+  groups: JSON.parse(localStorage.getItem('erc_groups')) || ['Block A', 'Block B', 'Block C'],
+};
+
+let currentRole = null;
+let passInterval = null;
+let clockInterval = null;
+let gpsWatchId = null;
+let currentPosition = null;
+
+function saveDB() {
+  localStorage.setItem('erc_users', JSON.stringify(DB.users));
+  localStorage.setItem('erc_locations', JSON.stringify(DB.locations));
+  localStorage.setItem('erc_schedule', JSON.stringify(DB.schedule));
+  localStorage.setItem('erc_passes', JSON.stringify(DB.passes));
+  localStorage.setItem('erc_emergency', JSON.stringify(DB.emergencyMode));
+  localStorage.setItem('erc_logs', JSON.stringify(DB.logs));
+  localStorage.setItem('erc_currentUser', JSON.stringify(DB.currentUser));
+  localStorage.setItem('erc_groups', JSON.stringify(DB.groups));
+}
+
+function showToast(message, type = 'info') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.style.background = type === 'error' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--dark)';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+function formatTime(date) {
+  return new Date(date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+
+function formatDate(date) {
+  return new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371e3;
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function checkGeofence(lat, lng) {
+  for (const loc of DB.locations) {
+    const dist = getDistance(lat, lng, loc.lat, loc.lng);
+    if (dist <= loc.radius) {
+      return { inside: true, location: loc, distance: Math.round(dist) };
+    }
+  }
+  return { inside: false, location: null, distance: null };
+}
+
+function selectRole(role) {
+  currentRole = role;
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.getElementById('login-form').style.display = 'block';
+}
+
+function performLogin() {
+  const id = document.getElementById('login-id').value.trim();
+  const password = document.getElementById('login-password').value;
+
+  if (!id || !password) {
+    showToast('Please enter ID and password', 'error');
+    return;
+  }
+
+  const user = DB.users.find(u => u.id === id && u.password === password && u.role === currentRole);
+  if (!user) {
+    showToast('Invalid credentials', 'error');
+    return;
+  }
+
+  DB.currentUser = user;
+  saveDB();
+
+  if (user.role === 'student') {
+    showPage('page-student');
+    initStudentPage();
+  } else {
+    showPage('page-admin');
+    initAdminPage();
+  }
+
+  document.getElementById('bottom-nav').classList.remove('hidden');
+  showToast(`Welcome, ${user.name}!`, 'success');
+}
+
+function logout() {
+  DB.currentUser = null;
+  saveDB();
+  if (gpsWatchId) navigator.geolocation.clearWatch(gpsWatchId);
+  if (clockInterval) clearInterval(clockInterval);
+  if (passInterval) clearInterval(passInterval);
+  document.getElementById('bottom-nav').classList.add('hidden');
+  showPage('page-login');
+  document.getElementById('login-form').style.display = 'none';
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  currentRole = null;
+}
+
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.getElementById(pageId).classList.remove('hidden');
+  document.getElementById(pageId).classList.add('animate-in');
+}
+
+function navTo(screen) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  if (screen === 'home') {
+    showPage('page-student');
+    initStudentPage();
+  } else if (screen === 'history') {
+    showStudentHistory();
+  } else if (screen === 'pass') {
+    showPage('page-student');
+    setTimeout(() => {
+      document.querySelector('.pass-card')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }
+}
+
+function initStudentPage() {
+  const user = DB.currentUser;
+  if (!user || user.role !== 'student') return;
+
+  document.getElementById('student-name').textContent = user.name;
+  document.getElementById('student-id').textContent = `ID: ${user.id} | ${user.group}`;
+  updateStudentStatus();
+  startClock();
+  startGPS();
+  updateTodaySchedule();
+  loadActivity();
+  checkEmergencyMode();
+  checkActivePass();
+}
+
+function updateStudentStatus() {
+  const user = DB.users.find(u => u.id === DB.currentUser.id);
+  const badge = document.getElementById('student-status-badge');
+  const btnIn = document.getElementById('btn-clock-in');
+  const btnOut = document.getElementById('btn-clock-out');
+
+  if (user.checkedIn) {
+    badge.className = 'status-badge status-in';
+    badge.innerHTML = '<span>●</span> Checked In';
+    btnIn.classList.add('hidden');
+    btnOut.classList.remove('hidden');
+  } else {
+    badge.className = 'status-badge status-out';
+    badge.innerHTML = '<span>●</span> Checked Out';
+    btnIn.classList.remove('hidden');
+    btnOut.classList.add('hidden');
+  }
+}
+
+function startClock() {
+  if (clockInterval) clearInterval(clockInterval);
+  function update() {
+    const now = new Date();
+    document.getElementById('current-time').textContent = formatTime(now);
+    document.getElementById('current-date').textContent = formatDate(now);
+  }
+  update();
+  clockInterval = setInterval(update, 1000);
+}
+
+function startGPS() {
+  if (!navigator.geolocation) {
+    document.getElementById('gps-status').textContent = 'GPS: Not supported';
+    return;
+  }
+
+  document.getElementById('gps-status').textContent = 'GPS: Acquiring...';
+
+  gpsWatchId = navigator.geolocation.watchPosition(
+    (position) => {
+      currentPosition = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        accuracy: position.coords.accuracy
+      };
+
+      const result = checkGeofence(currentPosition.lat, currentPosition.lng);
+      const locText = document.getElementById('location-text');
+      const gpsStatus = document.getElementById('gps-status');
+
+      gpsStatus.textContent = `GPS: ±${Math.round(currentPosition.accuracy)}m accuracy`;
+
+      if (result.inside) {
+        locText.innerHTML = `<span style="color: var(--success); font-weight: 600;">✓ Inside ${result.location.name}</span><br><span style="font-size: 0.75rem;">${result.distance}m from center</span>`;
+      } else {
+        locText.innerHTML = `<span style="color: var(--danger); font-weight: 600;">✗ Outside all zones</span><br><span style="font-size: 0.75rem;">Nearest: ${findNearestLocation(currentPosition.lat, currentPosition.lng)}</span>`;
+      }
+    },
+    (error) => {
+      document.getElementById('gps-status').textContent = 'GPS: Error - ' + error.message;
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+function findNearestLocation(lat, lng) {
+  let nearest = null;
+  let minDist = Infinity;
+  for (const loc of DB.locations) {
+    const dist = getDistance(lat, lng, loc.lat, loc.lng);
+    if (dist < minDist) {
+      minDist = dist;
+      nearest = loc;
+    }
+  }
+  return nearest ? `${nearest.name} (${Math.round(minDist)}m away)` : 'Unknown';
+}
+
+function updateTodaySchedule() {
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const today = days[new Date().getDay()];
+  const sched = DB.schedule[today];
+
+  if (today === 'saturday' || today === 'sunday') {
+    document.getElementById('today-schedule').textContent = 'Weekend - No mandatory check-in';
+  } else if (sched && sched.active) {
+    document.getElementById('today-schedule').textContent = `Check-in: ${sched.in} | Check-out: ${sched.out}`;
+  } else {
+    document.getElementById('today-schedule').textContent = 'No schedule set for today';
+  }
+}
+
+function clockIn() {
+  if (!currentPosition) {
+    showToast('Waiting for GPS signal...', 'error');
+    return;
+  }
+
+  const result = checkGeofence(currentPosition.lat, currentPosition.lng);
+  if (!result.inside) {
+    showToast('You must be inside a hostel zone to clock in', 'error');
+    return;
+  }
+
+  const user = DB.users.find(u => u.id === DB.currentUser.id);
+  const now = new Date();
+  user.checkedIn = true;
+  user.lastCheckIn = now.toISOString();
+  user.location = result.location.name;
+
+  DB.logs.push({
+    id: generateId(),
+    userId: user.id,
+    userName: user.name,
+    type: 'CLOCK_IN',
+    location: result.location.name,
+    timestamp: now.toISOString(),
+    lat: currentPosition.lat,
+    lng: currentPosition.lng
+  });
+
+  DB.currentUser = user;
+  saveDB();
+  updateStudentStatus();
+  loadActivity();
+  showToast(`Checked in at ${result.location.name}`, 'success');
+}
+
+function clockOut() {
+  const user = DB.users.find(u => u.id === DB.currentUser.id);
+  const now = new Date();
+  user.checkedIn = false;
+  user.lastCheckOut = now.toISOString();
+  user.location = null;
+
+  DB.logs.push({
+    id: generateId(),
+    userId: user.id,
+    userName: user.name,
+    type: 'CLOCK_OUT',
+    location: 'Manual checkout',
+    timestamp: now.toISOString(),
+    lat: currentPosition?.lat || null,
+    lng: currentPosition?.lng || null
+  });
+
+  DB.currentUser = user;
+  saveDB();
+  updateStudentStatus();
+  loadActivity();
+  showToast('Checked out successfully', 'success');
+}
+
+function loadActivity() {
+  const userLogs = DB.logs.filter(l => l.userId === DB.currentUser.id).slice(-5).reverse();
+  const container = document.getElementById('activity-list');
+
+  if (userLogs.length === 0) {
+    container.innerHTML = '<div style="color: var(--gray); text-align: center;">No recent activity</div>';
+    return;
+  }
+
+  container.innerHTML = userLogs.map(log => `
+    <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9;">
+      <div>
+        <div style="font-weight: 600;">${log.type === 'CLOCK_IN' ? '✅ Clock In' : '🚪 Clock Out'}</div>
+        <div style="font-size: 0.75rem; color: var(--gray);">${log.location}</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-weight: 500;">${formatTime(log.timestamp)}</div>
+        <div style="font-size: 0.75rem; color: var(--gray);">${new Date(log.timestamp).toLocaleDateString()}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showStudentHistory() {
+  showPage('page-student');
+  setTimeout(() => {
+    document.querySelector('.card:last-child')?.scrollIntoView({ behavior: 'smooth' });
+  }, 100);
+}
+
+function requestPass() {
+  const reason = document.getElementById('pass-reason-select').value;
+  const duration = parseInt(document.getElementById('pass-duration').value);
+
+  if (!reason) {
+    showToast('Please select a reason', 'error');
+    return;
+  }
+
+  const now = new Date();
+  const expiry = new Date(now.getTime() + duration * 60 * 60 * 1000);
+  const code = Math.random().toString(36).substr(2, 6).toUpperCase();
+
+  const pass = {
+    id: generateId(),
+    userId: DB.currentUser.id,
+    userName: DB.currentUser.name,
+    code: code,
+    reason: reason,
+    duration: duration,
+    createdAt: now.toISOString(),
+    expiresAt: expiry.toISOString(),
+    status: 'active'
+  };
+
+  DB.passes.push(pass);
+  saveDB();
+
+  document.getElementById('pass-form').classList.add('hidden');
+  document.getElementById('pass-active').classList.remove('hidden');
+  document.getElementById('pass-code').textContent = code;
+  document.getElementById('pass-reason').textContent = `${reason} • ${duration}h`;
+
+  showToast('Emergency pass activated', 'success');
+  startPassTimer(expiry);
+}
+
+function startPassTimer(expiry) {
+  if (passInterval) clearInterval(passInterval);
+
+  function update() {
+    const now = new Date();
+    const diff = new Date(expiry) - now;
+
+    if (diff <= 0) {
+      clearInterval(passInterval);
+      document.getElementById('pass-timer').textContent = 'EXPIRED';
+      document.getElementById('pass-timer').style.color = 'var(--danger)';
+      return;
+    }
+
+    const hours = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    document.getElementById('pass-timer').textContent = `Expires in: ${hours}h ${mins}m`;
+  }
+
+  update();
+  passInterval = setInterval(update, 60000);
+}
+
+function checkActivePass() {
+  const activePass = DB.passes.find(p => p.userId === DB.currentUser.id && p.status === 'active' && new Date(p.expiresAt) > new Date());
+
+  if (activePass) {
+    document.getElementById('pass-form').classList.add('hidden');
+    document.getElementById('pass-active').classList.remove('hidden');
+    document.getElementById('pass-code').textContent = activePass.code;
+    document.getElementById('pass-reason').textContent = `${activePass.reason} • ${activePass.duration}h`;
+    startPassTimer(activePass.expiresAt);
+  } else {
+    document.getElementById('pass-form').classList.remove('hidden');
+    document.getElementById('pass-active').classList.add('hidden');
+  }
+}
+
+function checkEmergencyMode() {
+  const banner = document.getElementById('emergency-banner');
+  const user = DB.users.find(u => u.id === DB.currentUser.id);
+
+  if (DB.emergencyMode && !user.emergencySafe) {
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+function confirmEmergencySafety() {
+  const user = DB.users.find(u => u.id === DB.currentUser.id);
+  user.emergencySafe = true;
+  saveDB();
+  document.getElementById('emergency-banner').classList.add('hidden');
+  showToast('Safety confirmed. Stay safe!', 'success');
+
+  if (DB.currentUser.role === 'admin') {
+    updateEmergencyStats();
+  }
+}
+
+function initAdminPage() {
+  updateStats();
+  renderAttendanceTable();
+  updateEmergencyStats();
+  renderLocations();
+  renderStudents();
+  renderGroups();
+  loadSchedule();
+}
+
+function updateStats() {
+  const students = DB.users.filter(u => u.role === 'student');
+  const present = students.filter(s => s.checkedIn).length;
+  const out = students.filter(s => !s.checkedIn).length;
+  const activePasses = DB.passes.filter(p => p.status === 'active' && new Date(p.expiresAt) > new Date()).length;
+
+  document.getElementById('stat-total').textContent = students.length;
+  document.getElementById('stat-present').textContent = present;
+  document.getElementById('stat-out').textContent = out;
+  document.getElementById('stat-emergency').textContent = activePasses;
+}
+
+function renderAttendanceTable() {
+  const students = DB.users.filter(u => u.role === 'student');
+  const tbody = document.getElementById('attendance-table');
+
+  tbody.innerHTML = students.map(s => {
+    const status = s.checkedIn 
+      ? '<span style="color: var(--success); font-weight: 600;">● In</span>' 
+      : '<span style="color: var(--danger); font-weight: 600;">● Out</span>';
+    const lastUpdate = s.lastCheckIn ? formatTime(s.lastCheckIn) : (s.lastCheckOut ? formatTime(s.lastCheckOut) : 'Never');
+    return `
+      <tr>
+        <td>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="avatar" style="width: 32px; height: 32px; font-size: 0.75rem;">${s.name.split(' ').map(n => n[0]).join('').substr(0,2)}</div>
+            <div>
+              <div style="font-weight: 600;">${s.name}</div>
+              <div style="font-size: 0.75rem; color: var(--gray);">${s.id}</div>
+            </div>
+          </div>
+        </td>
+        <td>${status}</td>
+        <td>${s.location || 'N/A'}</td>
+        <td style="font-size: 0.75rem; color: var(--gray);">${lastUpdate}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function updateEmergencyStats() {
+  const students = DB.users.filter(u => u.role === 'student');
+  const safe = students.filter(s => s.emergencySafe).length;
+  const total = students.length;
+  const pct = total > 0 ? Math.round((safe / total) * 100) : 0;
+
+  document.getElementById('emergency-safe').textContent = safe;
+  document.getElementById('emergency-total').textContent = total;
+  document.getElementById('emergency-progress').textContent = pct + '%';
+  document.getElementById('emergency-progress').style.borderTopColor = pct === 100 ? 'var(--success)' : pct > 50 ? 'var(--warning)' : 'var(--danger)';
+}
+
+function triggerEmergency() {
+  if (!confirm('⚠️ ACTIVATE EMERGENCY MODE?\n\nThis will initiate a head count for ALL students. Continue?')) {
+    return;
+  }
+
+  DB.emergencyMode = true;
+  DB.users.forEach(u => { if (u.role === 'student') u.emergencySafe = false; });
+  saveDB();
+
+  showToast('🚨 EMERGENCY MODE ACTIVATED', 'error');
+  updateEmergencyStats();
+  renderAttendanceTable();
+
+  if (DB.currentUser?.role === 'admin') {
+    initAdminPage();
+  }
+}
+
+function switchAdminTab(tab) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.add('hidden'));
+  document.getElementById('tab-' + tab).classList.remove('hidden');
+  document.querySelectorAll('.tabs:first-of-type .tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function loadSchedule() {
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+  const shortDays = ['mon', 'tue', 'wed', 'thu', 'fri'];
+
+  days.forEach((day, i) => {
+    const sched = DB.schedule[day];
+    document.getElementById(`${shortDays[i]}-in`).value = sched.in;
+    document.getElementById(`${shortDays[i]}-out`).value = sched.out;
+    document.getElementById(`${shortDays[i]}-active`).checked = sched.active;
+  });
+}
+
+function saveSchedule() {
+  const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+  const shortDays = ['mon', 'tue', 'wed', 'thu', 'fri'];
+
+  days.forEach((day, i) => {
+    DB.schedule[day] = {
+      in: document.getElementById(`${shortDays[i]}-in`).value,
+      out: document.getElementById(`${shortDays[i]}-out`).value,
+      active: document.getElementById(`${shortDays[i]}-active`).checked
+    };
+  });
+
+  saveDB();
+  showToast('Schedule saved successfully', 'success');
+}
+
+function renderLocations() {
+  const container = document.getElementById('locations-list');
+  container.innerHTML = DB.locations.map(loc => `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--light); border-radius: 8px; margin-bottom: 8px;">
+      <div>
+        <div style="font-weight: 600;">${loc.name}</div>
+        <div style="font-size: 0.75rem; color: var(--gray);">${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)} • ${loc.radius}m radius</div>
+      </div>
+      <button onclick="deleteLocation(${loc.id})" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.25rem;">🗑️</button>
+    </div>
+  `).join('');
+}
+
+function addLocation() {
+  const name = document.getElementById('loc-name').value.trim();
+  const lat = parseFloat(document.getElementById('loc-lat').value);
+  const lng = parseFloat(document.getElementById('loc-lng').value);
+  const radius = parseInt(document.getElementById('loc-radius').value);
+
+  if (!name || isNaN(lat) || isNaN(lng) || isNaN(radius)) {
+    showToast('Please fill all fields correctly', 'error');
+    return;
+  }
+
+  DB.locations.push({ id: Date.now(), name, lat, lng, radius });
+  saveDB();
+  renderLocations();
+
+  document.getElementById('loc-name').value = '';
+  document.getElementById('loc-lat').value = '';
+  document.getElementById('loc-lng').value = '';
+  showToast('Location added', 'success');
+}
+
+function deleteLocation(id) {
+  DB.locations = DB.locations.filter(l => l.id !== id);
+  saveDB();
+  renderLocations();
+}
+
+function switchUserTab(tab) {
+  document.getElementById('user-tab-students').classList.add('hidden');
+  document.getElementById('user-tab-admins').classList.add('hidden');
+  document.getElementById('user-tab-groups').classList.add('hidden');
+  document.getElementById('user-tab-' + tab).classList.remove('hidden');
+
+  event.target.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function renderStudents() {
+  const students = DB.users.filter(u => u.role === 'student');
+  const container = document.getElementById('students-list');
+
+  container.innerHTML = students.map(s => `
+    <div class="student-item">
+      <div class="student-info">
+        <div class="avatar">${s.name.split(' ').map(n => n[0]).join('').substr(0,2)}</div>
+        <div>
+          <div style="font-weight: 600;">${s.name}</div>
+          <div style="font-size: 0.75rem; color: var(--gray);">${s.id} • ${s.group}</div>
+        </div>
+      </div>
+      <span class="status-badge ${s.checkedIn ? 'status-in' : 'status-out'}">${s.checkedIn ? 'In' : 'Out'}</span>
+    </div>
+  `).join('');
+}
+
+function renderGroups() {
+  const container = document.getElementById('groups-list');
+  container.innerHTML = DB.groups.map(g => {
+    const count = DB.users.filter(u => u.group === g).length;
+    return `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--light); border-radius: 8px; margin-bottom: 8px;">
+        <div style="font-weight: 600;">${g}</div>
+        <div style="font-size: 0.875rem; color: var(--gray);">${count} students</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function addGroup() {
+  const name = document.getElementById('group-name').value.trim();
+  if (!name) {
+    showToast('Enter group name', 'error');
+    return;
+  }
+  if (DB.groups.includes(name)) {
+    showToast('Group already exists', 'error');
+    return;
+  }
+  DB.groups.push(name);
+  saveDB();
+  renderGroups();
+  document.getElementById('group-name').value = '';
+  showToast('Group created', 'success');
+}
+
+function showAddStudent() {
+  const name = prompt('Student Name:');
+  if (!name) return;
+  const id = prompt('Student ID (e.g., S005):');
+  if (!id) return;
+  const group = prompt('Group:', 'Block A');
+
+  if (DB.users.find(u => u.id === id)) {
+    showToast('ID already exists', 'error');
+    return;
+  }
+
+  DB.users.push({
+    id, name, password: 'pass123', role: 'student', group: group || 'Unassigned',
+    checkedIn: false, lastCheckIn: null, lastCheckOut: null, location: null, emergencySafe: false
+  });
+  saveDB();
+  renderStudents();
+  updateStats();
+  showToast('Student added', 'success');
+}
+
+function exportAttendance() {
+  const csv = [
+    ['Name', 'ID', 'Group', 'Status', 'Location', 'Last Update'].join(','),
+    ...DB.users.filter(u => u.role === 'student').map(s => [
+      s.name, s.id, s.group, s.checkedIn ? 'Checked In' : 'Checked Out',
+      s.location || 'N/A', s.lastCheckIn || s.lastCheckOut || 'Never'
+    ].join(','))
+  ].join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `attendance_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Attendance exported!', 'success');
+}
+
+// Auto-refresh admin stats every 10 seconds
+setInterval(() => {
+  if (DB.currentUser?.role === 'admin') {
+    updateStats();
+    renderAttendanceTable();
+    updateEmergencyStats();
+  }
+}, 10000);
+</script>
+</body>
+</html>
